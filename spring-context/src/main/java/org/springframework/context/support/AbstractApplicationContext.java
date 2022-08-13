@@ -512,6 +512,20 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		return this.applicationListeners;
 	}
 
+	/**
+	 * Load or refresh the persistent representation of the configuration,
+	 * which might an XML file, properties file, or relational database schema.
+	 * <p>As this is a startup method, it should destroy already created singletons
+	 * if it fails, to avoid dangling resources. In other words, after invocation
+	 * of that method, either all or no singletons at all should be instantiated.
+	 * 根据持久化的配置文件进行加载或者刷新，可能是xml、属性文件或者是db schema
+	 * 作为一个启动方法，当执行失败的时候应该销毁已经创建的单例对象，避免产生不可达资源，
+	 * 换言之，调用了这个方法后，要么全部实例化成功要么全部失败
+	 *
+	 * @throws BeansException if the bean factory could not be initialized
+	 * @throws IllegalStateException if already initialized and multiple refresh
+	 * attempts are not supported
+	 */
 	@Override
 	public void refresh() throws BeansException, IllegalStateException {
 		synchronized (this.startupShutdownMonitor) {
@@ -528,11 +542,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 			// Tell the subclass to refresh the internal bean factory.
 			/**
-			 *2
-			 创建容器对象：DefaultListableBeanFactory，加载XML配置文件的属性到当前的工厂中（默认用命名空间来解析），
-			 就是上面说的BeanDefinition（bean的定义信息）这里还没有初始化，只是配置信息都提取出来了，
-			 （包含里面的value值其实都只是占位符）
-			 *
+			 * 设置状态，设置序列化id
+			 * 获取beanFactory【之前初始化的DefaultListableBeanFactory】
 			 */
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
@@ -544,30 +555,59 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 			try {
 				// Allows post-processing of the bean factory in context subclasses.
+				//子类通过中写这个方法，对beanFactory进行自定义修改，例如web就添加了web相关的beanPostProcessor
 				postProcessBeanFactory(beanFactory);
 
 				// Invoke factory processors registered as beans in the context.
+				/**
+				 * 1、执行BeanDefinitionRegistryPostProcessor
+				 * 		添加beanDefinition的扩展点
+				 * 2、执行beanFactoryPostProcessor
+				 * 		修改beanDefinition的扩展点
+				 */
 				invokeBeanFactoryPostProcessors(beanFactory);
 
 				// Register bean processors that intercept bean creation.
+				/**
+				 * 注册BeanPostProcessor
+				 */
 				registerBeanPostProcessors(beanFactory);
 
 				// Initialize message source for this context.
+				/**
+				 * 初始化messaheSource组件：国际化、消息绑定与解析
+				 */
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
+				/**
+				 * 初始化消息派发器
+				 */
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
+				/**
+				 * 扩展点，子类对容器初始化的自定义逻辑，web场景下有使用
+				 */
 				onRefresh();
 
 				// Check for listener beans and register them.
+				/**
+				 * 注册监听器，并且派发之前产生的事件
+				 */
 				registerListeners();
 
 				// Instantiate all remaining (non-lazy-init) singletons.
+				/**
+				 * 初始化所有未处理的单例bean(非懒加载)
+				 */
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
+				/**
+				 * 完成刷新,生命周期相关的处理，发布容器启动完成事件
+				 *
+				 */
 				finishRefresh();
 			}
 
