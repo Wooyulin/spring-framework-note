@@ -842,6 +842,17 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 		return (this.configurationFrozen || super.isBeanEligibleForMetadataCaching(beanName));
 	}
 
+
+	/**
+	 * Ensure that all non-lazy-init singletons are instantiated, also considering
+	 * {@link org.springframework.beans.factory.FactoryBean FactoryBeans}.
+	 * Typically invoked at the end of factory setup, if desired.
+	 * @throws BeansException if one of the singleton beans could not be created.
+	 * Note: This may have left the factory with some beans already initialized!
+	 * Call {@link #destroySingletons()} for full cleanup in this case.
+	 * @see #destroySingletons()
+	 * 确保所有的非懒加载单例bean会被实例化，
+	 */
 	@Override
 	public void preInstantiateSingletons() throws BeansException {
 		if (logger.isTraceEnabled()) {
@@ -855,9 +866,12 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
 		// Trigger initialization of all non-lazy singleton beans...
  		for (String beanName : beanNames) {
+			//merge 父子的BeanDefinition
 			RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
+			// 非抽象、单例、非懒加载
 			if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
 				if (isFactoryBean(beanName)) {
+					//factoryBean使用这个
 					Object bean = getBean(FACTORY_BEAN_PREFIX + beanName);
 					if (bean instanceof FactoryBean) {
 						final FactoryBean<?> factory = (FactoryBean<?>) bean;
