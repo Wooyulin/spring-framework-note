@@ -1,5 +1,6 @@
 package cn.wooyulin;
 
+import cn.wooyulin.circularreference.ObjectB;
 import cn.wooyulin.config.AppConfig;
 import cn.wooyulin.model.User;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -14,5 +15,7 @@ public class App {
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class);
 		User user = (User)context.getBean("user");
 		System.out.println(user.name);
+		ObjectB objectB = context.getBean(ObjectB.class);
+		System.out.println(objectB.getA());
 	}
 }
