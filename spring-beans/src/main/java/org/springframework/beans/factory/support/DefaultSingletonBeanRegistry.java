@@ -178,14 +178,21 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 */
 	@Nullable
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
+		//先在一级缓存查找
 		Object singletonObject = this.singletonObjects.get(beanName);
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
+			//一级缓存找不到，但是该对象在创建中，代表已经有循环依赖了
 			synchronized (this.singletonObjects) {
+				//在二级缓存中找
 				singletonObject = this.earlySingletonObjects.get(beanName);
 				if (singletonObject == null && allowEarlyReference) {
+					//二级缓存找不到，并且允许提前引用，则去三级缓存找
 					ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 					if (singletonFactory != null) {
+						// 这里执行三级缓存存放的lambda 注意这里的getEarlyBeanReference 里面实际会有AOP的逻辑，如果是需要代理的话，这个步骤会生成代理对象
+						//但是这个代理对象是还未初始化的，说明即使是AOP的对象也是保持了一致的初始化流程
 						singletonObject = singletonFactory.getObject();
+						//放到二级缓存，然后移除三级缓存里面的，避免重复的AOP
 						this.earlySingletonObjects.put(beanName, singletonObject);
 						this.singletonFactories.remove(beanName);
 					}
@@ -247,9 +254,11 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					if (recordSuppressedExceptions) {
 						this.suppressedExceptions = null;
 					}
+					//取消Bean的创建中状态
 					afterSingletonCreation(beanName);
 				}
 				if (newSingleton) {
+					//新创建的bean， 放到一级缓存，并且从二三级缓存中移除
 					addSingleton(beanName, singletonObject);
 				}
 			}
